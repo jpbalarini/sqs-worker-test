@@ -1,0 +1,9 @@
+Type: AWS::SQS::Queue
+Properties:
+  QueueName: ${self:service}-${self:provider.stage}-test-queue
+  RedrivePolicy:
+    deadLetterTargetArn:
+      Fn::GetAtt:
+        - testQueueDLQ
+        - Arn
+    maxReceiveCount: 3

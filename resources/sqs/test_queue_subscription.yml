@@ -1,0 +1,9 @@
+Type: AWS::SNS::Subscription
+Properties:
+  TopicArn: !Ref testTopic
+  Endpoint:
+    Fn::GetAtt:
+      - testQueue
+      - Arn
+  Protocol: sqs
+  RawMessageDelivery: 'true'

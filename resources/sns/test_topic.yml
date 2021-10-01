@@ -1,0 +1,3 @@
+Type: AWS::SNS::Topic
+Properties:
+  TopicName: ${self:service}-${self:provider.stage}-test-topic

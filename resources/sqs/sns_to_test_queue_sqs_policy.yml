@@ -1,0 +1,19 @@
+Type: AWS::SQS::QueuePolicy
+Properties:
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      - Sid: 'allow-sns-messages'
+        Effect: Allow
+        Principal: '*'
+        Resource:
+          Fn::GetAtt:
+            - testQueue
+            - Arn
+        Action:
+          - sqs:SendMessage
+        Condition:
+          ArnEquals:
+            'aws:SourceArn': !Ref testTopic
+  Queues:
+    - Ref: testQueue

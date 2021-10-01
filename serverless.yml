@@ -1,0 +1,80 @@
+service: sqs-test-project
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: '20201221'
+  stage: 'development'
+
+plugins:
+  - serverless-offline-sns
+  - serverless-offline-sqs
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    noPrependStageInUrl: true
+    httpPort: 3012
+    lambdaPort: 3013
+  serverless-offline-sqs:
+    autoCreate: true
+    apiVersion: '2012-11-05'
+    endpoint: http://localhost:9324
+    region: us-east-1
+    accessKeyId: root
+    secretAccessKey: root
+  serverless-offline-sns:
+    port: 4002
+    debug: false
+    subscriptions:
+      - topic:
+          topicName: sqs-test-project-${self:provider.stage}-test-topic
+          rawMessageDelivery: 'true'
+        queue: http://localhost:9324/queue/${self:service}-${self:provider.stage}-test-queue
+
+functions:
+  sqs-producer:
+    handler: handlers/producer.handler
+    events:
+      - httpApi:
+          method: post
+          path: /produce
+    environment:
+      QUEUE_URL: 'http://localhost:9324/queue/sqs-test-project-development-test-queue'
+  sqs-consumer:
+    handler: handlers/consumer.handler
+    timeout: 30
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt:
+              - testQueue
+              - Arn
+  sns-trigger:
+    handler: handlers/sns_trigger.handler
+    events:
+      - httpApi:
+          method: post
+          path: /sns-trigger
+    environment:
+      TOPIC_NAME: 'sqs-test-project-development-test-topic'
+  testDLQ:
+    handler: handlers/dead_letter_queue.handler
+    timeout: 30
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt:
+              - testQueueDLQ
+              - Arn
+
+resources:
+  - Resources:
+      testTopic: ${file(./resources/sns/test_topic.yml)}
+      testQueue: ${file(./resources/sqs/test_queue.yml)}
+      testQueueDLQ: ${file(./resources/sqs/test_queue_dlq.yml)}
+      snsToTestQueueSqsPolicy: ${file(./resources/sqs/sns_to_test_queue_sqs_policy.yml)}
+      testQueueSubscription: ${file(./resources/sqs/test_queue_subscription.yml)}
